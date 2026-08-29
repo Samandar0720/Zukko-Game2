@@ -15,6 +15,15 @@ export function registerAllGames(bot) {
   registerRpsDuel(bot);
   registerSpyfall(bot);
   registerCrocodile(bot);
+  // New Games
+  registerMath(bot);
+  registerFlagQuiz(bot);
+  registerAnagram(bot);
+  registerSpeedClick(bot);
+  registerDiceBattle(bot);
+  registerDartsBattle(bot);
+  registerMathDuel(bot);
+  registerBombGame(bot);
 }
 
 // 1. Superlatives
@@ -972,3 +981,364 @@ function registerCrocodile(bot) {
     return next();
   });
 }
+
+// 14. Speed Math Challenge (Solo)
+function registerMath(bot) {
+  bot.command(['math', 'matematika'], async (ctx) => {
+    const chatId = ctx.chat.id;
+    const num1 = Math.floor(Math.random() * 40) + 10;
+    const num2 = Math.floor(Math.random() * 30) + 5;
+    const op = Math.random() > 0.5 ? '+' : '*';
+    const answer = op === '+' ? num1 + num2 : num1 * num2;
+
+    const fake1 = answer + Math.floor(Math.random() * 5) + 1;
+    const fake2 = answer - Math.floor(Math.random() * 5) - 1;
+    const fake3 = answer + 10;
+
+    const options = [answer, fake1, fake2, fake3].sort(() => Math.random() - 0.5);
+    const buttons = options.map(opt => [{ text: `${opt}`, callback_data: `math_ans_${chatId}_${opt === answer}` }]);
+
+    DB.setGame(chatId, { gameType: 'math', chatId, answer, isFinished: false });
+    await ctx.reply(`🧠 **Tezkor Matematika**\n\n❓ **${num1} ${op} ${num2} = ?**`, {
+      parse_mode: 'Markdown',
+      reply_markup: { inline_keyboard: buttons }
+    });
+  });
+
+  bot.action(/^math_ans_(-?\d+)_(true|false)$/, async (ctx) => {
+    const isCorrect = ctx.match[2] === 'true';
+    if (isCorrect) {
+      DB.addPoints(ctx.from, 10);
+      await ctx.answerCbQuery('🎉 To\'g\'ri javob! +10 ball');
+      await ctx.editMessageText(`🎉 **BARAKALLA! TO'G'RI JAVOB!** (+10 ball)`, { parse_mode: 'Markdown' });
+    } else {
+      await ctx.answerCbQuery('❌ Noto\'g\'ri javob!');
+      await ctx.editMessageText(`❌ **NOTO'G'RI JAVOB!** Yana bir bor urinib ko'ring: /math`, { parse_mode: 'Markdown' });
+    }
+  });
+}
+
+// 15. Flag Quiz (Solo)
+function registerFlagQuiz(bot) {
+  bot.command(['flag', 'bayroq'], async (ctx) => {
+    const chatId = ctx.chat.id;
+    const flags = questionsData.flags || [];
+    const item = flags[Math.floor(Math.random() * flags.length)];
+
+    const buttons = item.options.map((opt, idx) => [{
+      text: opt,
+      callback_data: `flag_ans_${chatId}_${idx === item.answer}`
+    }]);
+
+    await ctx.reply(`🏎️ **Bayroqni Top**\n\nUshbu bayroq qaysi davlatniki?\n\n#️⃣ ${item.flag}`, {
+      parse_mode: 'Markdown',
+      reply_markup: { inline_keyboard: buttons }
+    });
+  });
+
+  bot.action(/^flag_ans_(-?\d+)_(true|false)$/, async (ctx) => {
+    const isCorrect = ctx.match[2] === 'true';
+    if (isCorrect) {
+      DB.addPoints(ctx.from, 10);
+      await ctx.answerCbQuery('🎉 To\'g\'ri javob! +10 ball');
+      await ctx.editMessageText(`🎉 **TO'G'RI! Qoyil-maqom bilimdon!** (+10 ball)`, { parse_mode: 'Markdown' });
+    } else {
+      await ctx.answerCbQuery('❌ Noto\'g\'ri javob!');
+      await ctx.editMessageText(`❌ **NOTO'G'RI JAVOB!** Qayta o'ynash uchun /flag yuboring.`, { parse_mode: 'Markdown' });
+    }
+  });
+}
+
+// 16. Anagram (Solo)
+function registerAnagram(bot) {
+  bot.command(['anagram', 'harfshahmat'], async (ctx) => {
+    const chatId = ctx.chat.id;
+    const anagrams = questionsData.anagrams || [];
+    const item = anagrams[Math.floor(Math.random() * anagrams.length)];
+
+    DB.setGame(chatId, { gameType: 'anagram', chatId, targetWord: item.word, isFinished: false });
+    await ctx.reply(`🧩 **Harf Shahmat (Anagramma)**\n\nQuyidagi harflardan to'g'ri so'z tuzing:\n\n👉 \`${item.scrambled}\`\n\n✍️ Javobingizni chatga yozing!`, { parse_mode: 'Markdown' });
+  });
+
+  bot.on('text', async (ctx, next) => {
+    const chatId = ctx.chat.id;
+    const game = DB.getGame(chatId);
+    if (!game || game.gameType !== 'anagram' || game.isFinished) return next();
+
+    const text = ctx.message.text.trim().toUpperCase();
+    if (text === game.targetWord) {
+      game.isFinished = true;
+      DB.addPoints(ctx.from, 15);
+      DB.clearGame(chatId);
+      return ctx.reply(`🎉 **TO'G'RI! Yashirin so'z: ${game.targetWord}!** (+15 ball)`, { parse_mode: 'Markdown' });
+    }
+    return next();
+  });
+}
+
+// 17. Speed Clicker (Solo)
+function registerSpeedClick(bot) {
+  bot.command(['click', 'chaqqonlik'], async (ctx) => {
+    const chatId = ctx.chat.id;
+    const msg = await ctx.reply(`🔴 **Tayyorlaning... Hozir belgi beriladi!**\nTugma paydo bo'lishi bilan TEZDA BOSING!`, { parse_mode: 'Markdown' });
+
+    const delay = Math.floor(Math.random() * 3000) + 2000;
+    setTimeout(async () => {
+      const startTime = Date.now();
+      try {
+        await bot.telegram.editMessageText(chatId, msg.message_id, null, `🟢 **HOZIR BOSING! TEZROQ!**`, {
+          parse_mode: 'Markdown',
+          reply_markup: { inline_keyboard: [[{ text: '⚡ BOSING! ⚡', callback_data: `click_press_${chatId}_${startTime}` }]] }
+        });
+      } catch (e) {}
+    }, delay);
+  });
+
+  bot.action(/^click_press_(-?\d+)_(\d+)$/, async (ctx) => {
+    const startTime = parseInt(ctx.match[2], 10);
+    const reactionTime = Date.now() - startTime;
+    let points = reactionTime < 300 ? 20 : reactionTime < 500 ? 15 : 10;
+
+    DB.addPoints(ctx.from, points);
+    await ctx.answerCbQuery(`⚡ Tezlik: ${reactionTime}ms! (+${points} ball)`);
+    await ctx.editMessageText(`⚡ **DAHSHAT REAKSIYA!**\n\n⏱ Tezlik: **${reactionTime} ms**\n🏆 Qozonilgan ball: **+${points} ball**`, { parse_mode: 'Markdown' });
+  });
+}
+
+// 18. Dice Battle (2-Player Duel)
+function registerDiceBattle(bot) {
+  bot.command(['dice', 'zar'], async (ctx) => {
+    const chatId = ctx.chat.id;
+    DB.setGame(chatId, { gameType: 'diceBattle', chatId, state: 'WAITING', player1: ctx.from, player2: null });
+
+    await ctx.reply(`🎲 **Zar Tashlash Dueli (1v1)**\n👤 Da'vogar: **${ctx.from.first_name}**`, {
+      parse_mode: 'Markdown',
+      reply_markup: { inline_keyboard: [[{ text: '⚔️ Duelni qabul qilish!', callback_data: `dice_join_${chatId}` }]] }
+    });
+  });
+
+  bot.action(/^dice_join_(-?\d+)$/, async (ctx) => {
+    const chatId = ctx.match[1];
+    const game = DB.getGame(chatId);
+    if (!game || game.gameType !== 'diceBattle' || game.state !== 'WAITING') return ctx.answerCbQuery('⚠️ Topilmadi.');
+    if (ctx.from.id === game.player1.id) return ctx.answerCbQuery('⚠️ O\'zingiz bilan duel qilmaysiz!', { show_alert: true });
+
+    game.player2 = ctx.from;
+    game.state = 'PLAYING';
+
+    await ctx.answerCbQuery('🎲 Zarlar tashlanmoqda!');
+    await ctx.reply(`🎲 **${game.player1.first_name}** zarni tashlamoqda...`);
+    const d1 = await bot.telegram.sendDice(chatId);
+    
+    await ctx.reply(`🎲 **${game.player2.first_name}** zarni tashlamoqda...`);
+    const d2 = await bot.telegram.sendDice(chatId);
+
+    setTimeout(async () => {
+      const v1 = d1.dice.value;
+      const v2 = d2.dice.value;
+      let res = `🎲 **Natijalar:**\n👤 ${game.player1.first_name}: **${v1}**\n👤 ${game.player2.first_name}: **${v2}**\n\n`;
+
+      if (v1 > v2) {
+        DB.addPoints(game.player1, 15);
+        res += `🎉 **G'OLIB: ${game.player1.first_name}!** (+15 ball)`;
+      } else if (v2 > v1) {
+        DB.addPoints(game.player2, 15);
+        res += `🎉 **G'OLIB: ${game.player2.first_name}!** (+15 ball)`;
+      } else {
+        res += `🤝 **DURANG!** Ikkala zarda ham bir xil achko!`;
+      }
+      DB.clearGame(chatId);
+      await bot.telegram.sendMessage(chatId, res, { parse_mode: 'Markdown' });
+    }, 4000);
+  });
+}
+
+// 19. Darts Battle (2-Player Duel)
+function registerDartsBattle(bot) {
+  bot.command(['darts', 'nishon'], async (ctx) => {
+    const chatId = ctx.chat.id;
+    DB.setGame(chatId, { gameType: 'dartsBattle', chatId, state: 'WAITING', player1: ctx.from, player2: null });
+
+    await ctx.reply(`🎯 **Nishon Urish Dueli (Darts 1v1)**\n👤 Da'vogar: **${ctx.from.first_name}**`, {
+      parse_mode: 'Markdown',
+      reply_markup: { inline_keyboard: [[{ text: '⚔️ Duelni qabul qilish!', callback_data: `darts_join_${chatId}` }]] }
+    });
+  });
+
+  bot.action(/^darts_join_(-?\d+)$/, async (ctx) => {
+    const chatId = ctx.match[1];
+    const game = DB.getGame(chatId);
+    if (!game || game.gameType !== 'dartsBattle' || game.state !== 'WAITING') return ctx.answerCbQuery('⚠️ Topilmadi.');
+    if (ctx.from.id === game.player1.id) return ctx.answerCbQuery('⚠️ O\'zingiz bilan o\'ynay olmaysiz!', { show_alert: true });
+
+    game.player2 = ctx.from;
+    game.state = 'PLAYING';
+
+    await ctx.answerCbQuery('🎯 Nishonga otilmoqda!');
+    await ctx.reply(`🎯 **${game.player1.first_name}** nishonga otmoqda...`);
+    const d1 = await bot.telegram.sendDice(chatId, { emoji: '🎯' });
+
+    await ctx.reply(`🎯 **${game.player2.first_name}** nishonga otmoqda...`);
+    const d2 = await bot.telegram.sendDice(chatId, { emoji: '🎯' });
+
+    setTimeout(async () => {
+      const v1 = d1.dice.value;
+      const v2 = d2.dice.value;
+      let res = `🎯 **Natijalar:**\n👤 ${game.player1.first_name}: **${v1} ball**\n👤 ${game.player2.first_name}: **${v2} ball**\n\n`;
+
+      if (v1 > v2) {
+        DB.addPoints(game.player1, 15);
+        res += `🎉 **G'OLIB: ${game.player1.first_name}!** (+15 ball)`;
+      } else if (v2 > v1) {
+        DB.addPoints(game.player2, 15);
+        res += `🎉 **G'OLIB: ${game.player2.first_name}!** (+15 ball)`;
+      } else {
+        res += `🤝 **DURANG!** Aniq zarba!`;
+      }
+      DB.clearGame(chatId);
+      await bot.telegram.sendMessage(chatId, res, { parse_mode: 'Markdown' });
+    }, 4000);
+  });
+}
+
+// 20. Math Duel (2-Player Speed Race)
+function registerMathDuel(bot) {
+  bot.command(['mathduel', 'misolduel'], async (ctx) => {
+    const chatId = ctx.chat.id;
+    DB.setGame(chatId, { gameType: 'mathDuel', chatId, state: 'WAITING', player1: ctx.from, player2: null });
+
+    await ctx.reply(`🧠 **Matematik Misol Dueli (1v1 Tezlik Poygasi)**\n👤 Da'vogar: **${ctx.from.first_name}**`, {
+      parse_mode: 'Markdown',
+      reply_markup: { inline_keyboard: [[{ text: '⚔️ Duelni qabul qilish!', callback_data: `mduel_join_${chatId}` }]] }
+    });
+  });
+
+  bot.action(/^mduel_join_(-?\d+)$/, async (ctx) => {
+    const chatId = ctx.match[1];
+    const game = DB.getGame(chatId);
+    if (!game || game.gameType !== 'mathDuel' || game.state !== 'WAITING') return ctx.answerCbQuery('⚠️ Topilmadi.');
+    if (ctx.from.id === game.player1.id) return ctx.answerCbQuery('⚠️ O\'zingiz bilan o\'ynay olmaysiz!', { show_alert: true });
+
+    game.player2 = ctx.from;
+    game.state = 'PLAYING';
+
+    const a = Math.floor(Math.random() * 20) + 10;
+    const b = Math.floor(Math.random() * 15) + 5;
+    const ans = a * b;
+
+    const fake1 = ans + 10;
+    const fake2 = ans - 5;
+    const opts = [ans, fake1, fake2].sort(() => Math.random() - 0.5);
+
+    const buttons = opts.map(o => [{ text: `${o}`, callback_data: `mduel_ans_${chatId}_${o === ans}` }]);
+
+    await ctx.answerCbQuery('Misol berildi!');
+    await ctx.editMessageText(`🧠 **KIM BIRINCHI TOPADI?**\n\n❓ **${a} * ${b} = ?**\n\n👤 **${game.player1.first_name}** vs 👤 **${game.player2.first_name}**`, {
+      parse_mode: 'Markdown',
+      reply_markup: { inline_keyboard: buttons }
+    });
+  });
+
+  bot.action(/^mduel_ans_(-?\d+)_(true|false)$/, async (ctx) => {
+    const chatId = ctx.match[1];
+    const isCorrect = ctx.match[2] === 'true';
+    const game = DB.getGame(chatId);
+    if (!game || game.gameType !== 'mathDuel' || game.state !== 'PLAYING') return ctx.answerCbQuery('⚠️ Tugagan.');
+
+    if (ctx.from.id !== game.player1.id && ctx.from.id !== game.player2.id) return ctx.answerCbQuery('⚠️ Siz duel qatnashchisi emassiz!', { show_alert: true });
+
+    if (isCorrect) {
+      DB.addPoints(ctx.from, 20);
+      DB.clearGame(chatId);
+      await ctx.answerCbQuery('🎉 Birinchi topdingiz!');
+      await ctx.editMessageText(`🎉 **DUEL G'OLIBI: ${ctx.from.first_name}!** Misolni birinchi topdi (+20 ball)`, { parse_mode: 'Markdown' });
+    } else {
+      await ctx.answerCbQuery('❌ Noto\'g\'ri javob!', { show_alert: true });
+    }
+  });
+}
+
+// 21. Hot Potato Bomb Game (3+ Party Game)
+function registerBombGame(bot) {
+  bot.command(['bomb', 'bomba'], async (ctx) => {
+    if (ctx.chat.type === 'private') return ctx.reply('⚠️ Guruhda 3+ kishi bilan o\'ynang!');
+    const chatId = ctx.chat.id;
+
+    DB.setGame(chatId, { gameType: 'bomb', chatId, state: 'LOBBY', players: [ctx.from], currentHolderIdx: 0, timer: null });
+
+    const keyboard = {
+      inline_keyboard: [
+        [{ text: '💣 Qo\'shilish', callback_data: `bomb_join_${chatId}` }],
+        [{ text: '▶️ Bombani tayyorlash (Start)', callback_data: `bomb_start_${chatId}` }]
+      ]
+    };
+    await ctx.reply(`💣 **Portlovchi Bomba (Hot Potato)**\n\nIshtirokchilar:\n1. ${ctx.from.first_name}`, { parse_mode: 'Markdown', reply_markup: keyboard });
+  });
+
+  bot.action(/^bomb_join_(-?\d+)$/, async (ctx) => {
+    const chatId = ctx.match[1];
+    const game = DB.getGame(chatId);
+    if (!game || game.gameType !== 'bomb' || game.state !== 'LOBBY') return ctx.answerCbQuery('⚠️ Topilmadi.');
+    if (game.players.some(p => p.id === ctx.from.id)) return ctx.answerCbQuery('⚠️ Qo\'shilgansiz!', { show_alert: true });
+
+    game.players.push(ctx.from);
+    await ctx.answerCbQuery('✅ Qo\'shildingiz!');
+    const plist = game.players.map((p, i) => `${i + 1}. ${p.first_name}`).join('\n');
+    await ctx.editMessageText(`💣 **Portlovchi Bomba**\n\nIshtirokchilar (${game.players.length}):\n${plist}`, {
+      parse_mode: 'Markdown',
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '💣 Qo\'shilish', callback_data: `bomb_join_${chatId}` }],
+          [{ text: '▶️ Bombani tayyorlash (Start)', callback_data: `bomb_start_${chatId}` }]
+        ]
+      }
+    });
+  });
+
+  bot.action(/^bomb_start_(-?\d+)$/, async (ctx) => {
+    const chatId = ctx.match[1];
+    const game = DB.getGame(chatId);
+    if (!game || game.gameType !== 'bomb' || game.state !== 'LOBBY') return ctx.answerCbQuery('⚠️ Topilmadi.');
+    if (game.players.length < 2) return ctx.answerCbQuery('⚠️ Kamida 2 ta o\'yinchi kerak!', { show_alert: true });
+
+    game.state = 'PLAYING';
+    game.currentHolderIdx = 0;
+    const bombTime = Math.floor(Math.random() * 20000) + 15000;
+
+    await ctx.answerCbQuery('💣 Bomba yoqildi!');
+
+    const currentHolder = game.players[game.currentHolderIdx];
+    await ctx.editMessageText(`💣 **BOMBA YOQILDI VA CHIRTILLAMOQDA!** 🧨\n\n🔥 Bomba hozir: **${currentHolder.first_name}** qo'lida!\n\nTezda tugmani bosib bombani boshqaga uzating!`, {
+      parse_mode: 'Markdown',
+      reply_markup: { inline_keyboard: [[{ text: '💣 Bombani boshqaga uzatish!', callback_data: `bomb_pass_${chatId}` }]] }
+    });
+
+    game.timer = setTimeout(async () => {
+      const active = DB.getGame(chatId);
+      if (active && active.gameType === 'bomb' && active.state === 'PLAYING') {
+        const loser = active.players[active.currentHolderIdx];
+        DB.clearGame(chatId);
+        await bot.telegram.sendMessage(chatId, `💥 **BUMMMM! BOMBA PORTLADI!** 💣💥\n\n💀 **${loser.first_name}** bombani o'z vaqtida uzata olmadi va mag'lub bo'ldi!`, { parse_mode: 'Markdown' });
+      }
+    }, bombTime);
+  });
+
+  bot.action(/^bomb_pass_(-?\d+)$/, async (ctx) => {
+    const chatId = ctx.match[1];
+    const game = DB.getGame(chatId);
+    if (!game || game.gameType !== 'bomb' || game.state !== 'PLAYING') return ctx.answerCbQuery('⚠️ O\'yin yakunlangan.');
+
+    const currentHolder = game.players[game.currentHolderIdx];
+    if (ctx.from.id !== currentHolder.id) return ctx.answerCbQuery('⚠️ Bomba sizda emas! Hozir u ' + currentHolder.first_name + ' da!', { show_alert: true });
+
+    game.currentHolderIdx = (game.currentHolderIdx + 1) % game.players.length;
+    const nextHolder = game.players[game.currentHolderIdx];
+
+    await ctx.answerCbQuery('🔥 Uzatildi!');
+    await ctx.editMessageText(`💣 **BOMBA O'TDI!** 🧨\n\n🔥 Bomba hozir: **${nextHolder.first_name}** qo'lida!\n\nTezroq uzating!`, {
+      parse_mode: 'Markdown',
+      reply_markup: { inline_keyboard: [[{ text: '💣 Bombani boshqaga uzatish!', callback_data: `bomb_pass_${chatId}` }]] }
+    });
+  });
+}
+
