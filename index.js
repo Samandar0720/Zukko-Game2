@@ -3,6 +3,7 @@ import { Telegraf } from 'telegraf';
 import { config } from './config.js';
 import { DB } from './db.js';
 import { registerAllGames } from './games.js';
+import { registerAdminPanel } from './admin.js';
 
 if (!config.botToken) {
   console.error('❌ BOT_TOKEN belgilanmagan! Bot ishga tushmaydi.');
@@ -77,7 +78,8 @@ bot.help((ctx) => {
     `• /truthlie — 2 chin va 1 yolg'on\n` +
     `• /story — Hikoya zanjiri\n` +
     `• /bomb — Portlovchi Bomba (Hot Potato)\n\n` +
-    `🏆 **/top** — Reyting va to'plangan ballar.`;
+    `🏆 **/top** — Reyting va to'plangan ballar.\n\n` +
+    `⚙️ **/settings** — Bot sozlamalari (faqat admin uchun).`;
 
   return ctx.reply(helpText, { parse_mode: 'Markdown' });
 });
@@ -188,6 +190,7 @@ bot.use((ctx, next) => {
 
 // Register all 21 games
 registerAllGames(bot);
+registerAdminPanel(bot);
 
 // Launch mode setup
 const PORT = config.port;
