@@ -149,11 +149,44 @@ function sendTopLeaderboard(ctx) {
   return ctx.reply(text, { parse_mode: 'Markdown' });
 }
 
+// Xavfsizlik qatlami: barcha ctx.answerCbQuery() chaqiruvlarini
+// "eskirgan query" xatosidan himoyalaymiz, shunda 57 joyni birma-bir
+// try/catch bilan o'rashning hojati qolmaydi.
+bot.use((ctx, next) => {
+  if (ctx.answerCbQuery) {
+    const original = ctx.answerCbQuery.bind(ctx);
+    ctx.answerCbQuery = async (...args) => {
+      try {
+        return await original(...args);
+      } catch (err) {
+        const desc = err?.response?.description || err?.message || '';
+        if (desc.includes('query is too old') || desc.includes('query ID is invalid')) {
+          return; // eskirgan — jim o'tkazib yuboramiz
+        }
+        throw err;
+      }
+    };
+  }
+  return next();
+});
+
 // Register all 13 games
 registerAllGames(bot);
 
 // Launch mode setup
 const PORT = config.port;
+
+// Global xato ushlagich: har qanday action/middleware xatosi
+// (masalan, eskirgan callback query) butun botni yiqitmasligi uchun.
+bot.catch((err, ctx) => {
+  const desc = err?.response?.description || err?.message || '';
+  if (desc.includes('query is too old') || desc.includes('query ID is invalid')) {
+    // Eskirgan callback query — e'tiborsiz qoldiramiz, bu normal holat
+    console.log(`⚠️ Eskirgan callback query e'tiborsiz qoldirildi (update ${ctx?.update?.update_id}).`);
+    return;
+  }
+  console.error(`❌ Botda kutilmagan xato (update ${ctx?.update?.update_id}):`, err);
+});
 
 if (config.webhookUrl) {
   const webhookPath = `/webhook/${config.botToken}`;
@@ -161,7 +194,9 @@ if (config.webhookUrl) {
   bot.telegram.setWebhook(`${config.webhookUrl}${webhookPath}`);
   console.log(`🌐 Webhook o'rnatildi: ${config.webhookUrl}${webhookPath}`);
 } else {
-  bot.launch().then(() => {
+  bot.launch({
+    dropPendingUpdates: true, // restart paytida yig'ilib qolgan eski update'larni tashlab yuborish
+  }).then(() => {
     console.log('🚀 Zukko Telegram Bot Polling rejimida muvaffaqiyatli ishga tushdi!');
   }).catch((err) => {
     console.error('❌ Bot launch error:', err);
