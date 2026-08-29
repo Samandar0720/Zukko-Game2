@@ -315,7 +315,8 @@ function registerQuiz(bot) {
 
     let filtered = questionsData.quiz;
     if (chosenCat !== '🎲 Aralash') filtered = filtered.filter(q => q.category === chosenCat);
-    const shuffled = [...filtered].sort(() => Math.random() - 0.5).slice(0, 5);
+    const questionCount = DB.getSetting('quizQuestionCount');
+    const shuffled = [...filtered].sort(() => Math.random() - 0.5).slice(0, questionCount);
 
     DB.setGame(chatId, {
       gameType: 'quiz',
@@ -345,8 +346,9 @@ function registerQuiz(bot) {
     const q = game.questions[qIndex];
 
     if (optIdx === q.answer) {
-      DB.addPoints(ctx.from, 10);
-      await ctx.answerCbQuery("🎉 To'g'ri! +10 ball");
+      const correctPoints = DB.getSetting('quizCorrectPoints');
+      DB.addPoints(ctx.from, correctPoints);
+      await ctx.answerCbQuery(`🎉 To'g'ri! +${correctPoints} ball`);
     } else {
       await ctx.answerCbQuery(`❌ Noto'g'ri! To'g'ri: ${q.options[q.answer]}`);
     }
@@ -595,7 +597,8 @@ function registerWordle(bot) {
 function registerMinesweeper(bot) {
   bot.command(['mines', 'minamaydoni'], async (ctx) => {
     const chatId = ctx.chat.id;
-    const gridRows = 4, gridCols = 4, totalMines = 3;
+    const gridRows = 4, gridCols = 4;
+    const totalMines = DB.getSetting('minesCount');
     const mineIndices = new Set();
     while (mineIndices.size < totalMines) mineIndices.add(Math.floor(Math.random() * 16));
 
@@ -608,9 +611,10 @@ function registerMinesweeper(bot) {
       grid.push(row);
     }
 
-    DB.setGame(chatId, { gameType: 'minesweeper', chatId, grid, score: 0, safeRevealed: 0, totalSafe: 13, isFinished: false, player: ctx.from });
+    const totalSafe = 16 - totalMines;
+    DB.setGame(chatId, { gameType: 'minesweeper', chatId, grid, score: 0, safeRevealed: 0, totalSafe, isFinished: false, player: ctx.from });
     const keyboard = buildMinesKeyboard(chatId, grid, false);
-    await ctx.reply(`💣 **Mina Maydoni (16 katak, 3 mina)**\n\nKatakni tanlang:`, { parse_mode: 'Markdown', reply_markup: keyboard });
+    await ctx.reply(`💣 **Mina Maydoni (16 katak, ${totalMines} mina)**\n\nKatakni tanlang:`, { parse_mode: 'Markdown', reply_markup: keyboard });
   });
 
   bot.action(/^mines_click_(-?\d+)_(\d+)_(\d+)$/, async (ctx) => {
@@ -631,18 +635,20 @@ function registerMinesweeper(bot) {
       return ctx.editMessageText(`💥 **PORTLASH! Minaga tushdingiz!** 💣`, { parse_mode: 'Markdown', reply_markup: buildMinesKeyboard(chatId, game.grid, true) });
     }
 
+    const revealPoints = DB.getSetting('minesRevealPoints');
     game.safeRevealed++;
-    game.score += 5;
+    game.score += revealPoints;
 
     if (game.safeRevealed === game.totalSafe) {
+      const winBonus = DB.getSetting('minesWinBonus');
       game.isFinished = true;
-      DB.addPoints(game.player, game.score + 20);
+      DB.addPoints(game.player, game.score + winBonus);
       DB.clearGame(chatId);
-      return ctx.editMessageText(`🏆 **G'OLIBIYAT! Barcha kataklar ochildi!** (+${game.score + 20} ball)`, { parse_mode: 'Markdown', reply_markup: buildMinesKeyboard(chatId, game.grid, true) });
+      return ctx.editMessageText(`🏆 **G'OLIBIYAT! Barcha kataklar ochildi!** (+${game.score + winBonus} ball)`, { parse_mode: 'Markdown', reply_markup: buildMinesKeyboard(chatId, game.grid, true) });
     }
 
-    await ctx.answerCbQuery(`💎 +5 ball!`);
-    return ctx.editMessageText(`💣 **Mina Maydoni**\n💎 Ochildi: ${game.safeRevealed}/13\n💰 Ball: +${game.score}`, { parse_mode: 'Markdown', reply_markup: buildMinesKeyboard(chatId, game.grid, false) });
+    await ctx.answerCbQuery(`💎 +${revealPoints} ball!`);
+    return ctx.editMessageText(`💣 **Mina Maydoni**\n💎 Ochildi: ${game.safeRevealed}/${game.totalSafe}\n💰 Ball: +${game.score}`, { parse_mode: 'Markdown', reply_markup: buildMinesKeyboard(chatId, game.grid, false) });
   });
 
   bot.action(/^mines_cashout_(-?\d+)$/, async (ctx) => {
@@ -1039,9 +1045,10 @@ function registerFlagQuiz(bot) {
   bot.action(/^flag_ans_(-?\d+)_(true|false)$/, async (ctx) => {
     const isCorrect = ctx.match[2] === 'true';
     if (isCorrect) {
-      DB.addPoints(ctx.from, 10);
-      await ctx.answerCbQuery('🎉 To\'g\'ri javob! +10 ball');
-      await ctx.editMessageText(`🎉 **TO'G'RI! Qoyil-maqom bilimdon!** (+10 ball)`, { parse_mode: 'Markdown' });
+      const flagPoints = DB.getSetting('flagPoints');
+      DB.addPoints(ctx.from, flagPoints);
+      await ctx.answerCbQuery(`🎉 To'g'ri javob! +${flagPoints} ball`);
+      await ctx.editMessageText(`🎉 **TO'G'RI! Qoyil-maqom bilimdon!** (+${flagPoints} ball)`, { parse_mode: 'Markdown' });
     } else {
       await ctx.answerCbQuery('❌ Noto\'g\'ri javob!');
       await ctx.editMessageText(`❌ **NOTO'G'RI JAVOB!** Qayta o'ynash uchun /flag yuboring.`, { parse_mode: 'Markdown' });
@@ -1067,10 +1074,11 @@ function registerAnagram(bot) {
 
     const text = ctx.message.text.trim().toUpperCase();
     if (text === game.targetWord) {
+      const anagramPoints = DB.getSetting('anagramPoints');
       game.isFinished = true;
-      DB.addPoints(ctx.from, 15);
+      DB.addPoints(ctx.from, anagramPoints);
       DB.clearGame(chatId);
-      return ctx.reply(`🎉 **TO'G'RI! Yashirin so'z: ${game.targetWord}!** (+15 ball)`, { parse_mode: 'Markdown' });
+      return ctx.reply(`🎉 **TO'G'RI! Yashirin so'z: ${game.targetWord}!** (+${anagramPoints} ball)`, { parse_mode: 'Markdown' });
     }
     return next();
   });
@@ -1341,4 +1349,3 @@ function registerBombGame(bot) {
     });
   });
 }
-
