@@ -16,7 +16,7 @@ app.use(express.json());
 
 // Express Health Check endpoint (Render deploy uchun)
 app.get('/', (req, res) => {
-  res.send('🎮 Zukko Telegram Bot Muvaffaqiyatli Ishlamoqda!');
+  res.send('🎮 Zukko Telegram Bot Muvaffaqiyatli Ishlamoqda! (21-in-1 Games Collection)');
 });
 
 app.get('/health', (req, res) => {
@@ -27,7 +27,7 @@ app.get('/health', (req, res) => {
 bot.start((ctx) => {
   const name = ctx.from.first_name || 'Do\'stim';
   const text = `Salom ${name}! 👋\n\n` +
-    `🤖 Men **Zukko Game Bot**man — Har xil (1 kishilik, 2 kishilik va ko'pchilik) o'yinlar boti!\n\n` +
+    `🤖 Men **Zukko Game Bot**man — Har xil (1 kishilik, 2 kishilik va ko'pchilik) 21 ta o'yinlar boti!\n\n` +
     `Zerikkanda bir o'zingiz o'ynaysizmi, do'stingiz bilan duel qilasizmi yoki guruhda o'ynaysizmi — barchasi bor!\n\n` +
     `🎮 O'yinlar menyusini ochish uchun /game buyrug'ini yuboring.`;
 
@@ -52,15 +52,22 @@ bot.start((ctx) => {
 });
 
 bot.help((ctx) => {
-  const helpText = `🎮 **Zukko Bot O'yinlar Ro'yxati va Buyruqlari:**\n\n` +
+  const helpText = `🎮 **Zukko Bot — 21 ta O'yinlar Ro'yxati:**\n\n` +
     `👤 **1 Kishilik O'yinlar (Solo / Zerikkanda):**\n` +
     `• /wordle — O'zbekcha Wordle (5-harfli so'z topish)\n` +
     `• /mines — Mina Maydoni (Minesweeper mini grid)\n` +
     `• /sontop — Son Topish (1 dan 100 gacha)\n` +
-    `• /quiz — Viktorina / Bilag'on jangi\n\n` +
+    `• /quiz — Viktorina / Bilag'on jangi\n` +
+    `• /math — Tezkor Matematika\n` +
+    `• /flag — Bayroqni top\n` +
+    `• /anagram — Harf Shahmat (Anagramma)\n` +
+    `• /click — Chaqqonlik / Reaksiya sinovi\n\n` +
     `⚔️ **2 Kishilik Duellar (1v1):**\n` +
     `• /xo — X-O (Tic-Tac-Toe 3x3 grid)\n` +
-    `• /rps — Tosh-Qaychi-Qog'oz instant duel\n\n` +
+    `• /rps — Tosh-Qaychi-Qog'oz instant duel\n` +
+    `• /dice — Zar tashlash dueli (Animated Dice)\n` +
+    `• /darts — Nishonga urish dueli (Animated Darts)\n` +
+    `• /mathduel — Matematik misol tezlik poygasi\n\n` +
     `👥 **3+ va Ko'pchilik O'yinlari (Party):**\n` +
     `• /spy — Josus (Spyfall party game)\n` +
     `• /croc — Timsah (Pantomima / Emoji mime)\n` +
@@ -68,7 +75,8 @@ bot.help((ctx) => {
     `• /fibbage — Soxta javob (Fibbage)\n` +
     `• /superlatives — Eng ko'p ovoz\n` +
     `• /truthlie — 2 chin va 1 yolg'on\n` +
-    `• /story — Hikoya zanjiri\n\n` +
+    `• /story — Hikoya zanjiri\n` +
+    `• /bomb — Portlovchi Bomba (Hot Potato)\n\n` +
     `🏆 **/top** — Reyting va to'plangan ballar.`;
 
   return ctx.reply(helpText, { parse_mode: 'Markdown' });
@@ -76,7 +84,7 @@ bot.help((ctx) => {
 
 // /game or /games menu
 bot.command(['game', 'games', 'oyinlar'], (ctx) => {
-  const text = `🎮 **Zukko O'yinlar Boti**\n\nQanday o'yin o'ynamoqchisiz? O'yinchilar soniga qarab toifani tanlang:`;
+  const text = `🎮 **Zukko O'yinlar Boti (21 ta O'yin)**\n\nQanday o'yin o'ynamoqchisiz? O'yinchilar soniga qarab toifani tanlang:`;
   const keyboard = {
     inline_keyboard: [
       [{ text: '👤 1 Kishilik O\'yinlar (Solo)', callback_data: 'cat_solo' }],
@@ -95,16 +103,23 @@ bot.action('cat_solo', (ctx) => {
     `🔤 **/wordle** — O'zbekcha Wordle\n` +
     `💣 **/mines** — Mina Maydoni\n` +
     `🔢 **/sontop** — Son Topish\n` +
-    `🧠 **/quiz** — Bilag'on jangi\n\n` +
+    `🧠 **/quiz** — Bilag'on jangi\n` +
+    `🧮 **/math** — Tezkor Matematika\n` +
+    `🏎️ **/flag** — Bayroqni top\n` +
+    `🧩 **/anagram** — Harf Shahmat (Anagramma)\n` +
+    `⚡ **/click** — Chaqqonlik sinovi\n\n` +
     `_Ushbu o'yinlarni shaxsiy botda (DM) ham, guruhda ham o'ynashingiz mumkin!_`;
   return ctx.reply(text, { parse_mode: 'Markdown' });
 });
 
 bot.action('cat_duel', (ctx) => {
   ctx.answerCbQuery();
-  const text = `⚔️ **2 Kishilik Duellar (1v1):**\n\n` +
+  const text = `⚔️ **2 Kishilik Duellar (1v1 — Do'st bilan belgilashish):**\n\n` +
     `❌⭕ **/xo** — X-O (Tic-Tac-Toe)\n` +
-    `✂️🪨📄 **/rps** — Tosh-Qaychi-Qog'oz\n\n` +
+    `✂️🪨📄 **/rps** — Tosh-Qaychi-Qog'oz\n` +
+    `🎲 **/dice** — Zar tashlash dueli\n` +
+    `🎯 **/darts** — Nishon urish dueli\n` +
+    `🧠 **/mathduel** — Matematik misol poygasi\n\n` +
     `_O'yinni boshlang va do'stingizni duelga chaqiring!_`;
   return ctx.reply(text, { parse_mode: 'Markdown' });
 });
@@ -114,6 +129,7 @@ bot.action('cat_party', (ctx) => {
   const text = `👥 **3+ Kishilik Guruh O'yinlari (Party Games):**\n\n` +
     `🕵️‍♂️ **/spy** — Josus (Spyfall)\n` +
     `🐊 **/croc** — Timsah (Pantomima)\n` +
+    `💣 **/bomb** — Portlovchi Bomba (Hot Potato)\n` +
     `🎭 **/alias** — Taxmin qil\n` +
     `🎣 **/fibbage** — Soxta javob\n` +
     `🏆 **/superlatives** — Eng ko'p ovoz\n` +
@@ -149,44 +165,11 @@ function sendTopLeaderboard(ctx) {
   return ctx.reply(text, { parse_mode: 'Markdown' });
 }
 
-// Xavfsizlik qatlami: barcha ctx.answerCbQuery() chaqiruvlarini
-// "eskirgan query" xatosidan himoyalaymiz, shunda 57 joyni birma-bir
-// try/catch bilan o'rashning hojati qolmaydi.
-bot.use((ctx, next) => {
-  if (ctx.answerCbQuery) {
-    const original = ctx.answerCbQuery.bind(ctx);
-    ctx.answerCbQuery = async (...args) => {
-      try {
-        return await original(...args);
-      } catch (err) {
-        const desc = err?.response?.description || err?.message || '';
-        if (desc.includes('query is too old') || desc.includes('query ID is invalid')) {
-          return; // eskirgan — jim o'tkazib yuboramiz
-        }
-        throw err;
-      }
-    };
-  }
-  return next();
-});
-
-// Register all 13 games
+// Register all 21 games
 registerAllGames(bot);
 
 // Launch mode setup
 const PORT = config.port;
-
-// Global xato ushlagich: har qanday action/middleware xatosi
-// (masalan, eskirgan callback query) butun botni yiqitmasligi uchun.
-bot.catch((err, ctx) => {
-  const desc = err?.response?.description || err?.message || '';
-  if (desc.includes('query is too old') || desc.includes('query ID is invalid')) {
-    // Eskirgan callback query — e'tiborsiz qoldiramiz, bu normal holat
-    console.log(`⚠️ Eskirgan callback query e'tiborsiz qoldirildi (update ${ctx?.update?.update_id}).`);
-    return;
-  }
-  console.error(`❌ Botda kutilmagan xato (update ${ctx?.update?.update_id}):`, err);
-});
 
 if (config.webhookUrl) {
   const webhookPath = `/webhook/${config.botToken}`;
@@ -194,9 +177,7 @@ if (config.webhookUrl) {
   bot.telegram.setWebhook(`${config.webhookUrl}${webhookPath}`);
   console.log(`🌐 Webhook o'rnatildi: ${config.webhookUrl}${webhookPath}`);
 } else {
-  bot.launch({
-    dropPendingUpdates: true, // restart paytida yig'ilib qolgan eski update'larni tashlab yuborish
-  }).then(() => {
+  bot.launch().then(() => {
     console.log('🚀 Zukko Telegram Bot Polling rejimida muvaffaqiyatli ishga tushdi!');
   }).catch((err) => {
     console.error('❌ Bot launch error:', err);
