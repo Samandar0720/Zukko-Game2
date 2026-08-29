@@ -134,5 +134,24 @@ export const questionsData = {
     "🚗 Yo'ldagi probka", "🎮 Dasturchi kod yozmoqda",
     "😴 Ma'ruzada uxlab qolgan talaba", "🏃‍♂️ Avtobus ortidan yugurayotgan odam",
     "📸 Selfi tushayotgan sayyoh", "☕ Ertalabki issiq kofe"
+  ],
+  flags: [
+    { flag: "🇺🇿", country: "O'zbekiston", options: ["O'zbekiston", "Qozog'iston", "Turkmaniston", "Tojikiston"], answer: 0 },
+    { flag: "🇹🇷", country: "Turkiya", options: ["Ozarbayjon", "Turkiya", "Misr", "Tunis"], answer: 1 },
+    { flag: "🇩🇪", country: "Germaniya", options: ["Belgiya", "Germaniya", "Avstriya", "Niderlandiya"], answer: 1 },
+    { flag: "🇯🇵", country: "Yaponiya", options: ["Koreya", "Xitoy", "Yaponiya", "Vyetnam"], answer: 2 },
+    { flag: "🇧🇷", country: "Braziliya", options: ["Argentina", "Braziliya", "Kolumbiya", "Chili"], answer: 1 },
+    { flag: "🇫🇷", country: "Fransiya", options: ["Italiya", "Fransiya", "Ispaniya", "Buyuk Britaniya"], answer: 1 },
+    { flag: "🇦🇷", country: "Argentina", options: ["Urugvay", "Argentina", "Paragvay", "Braziliya"], answer: 1 },
+    { flag: "🇸🇦", country: "Saudiya Arabistoni", options: ["BAA", "Qatar", "Saudiya Arabistoni", "Quvayt"], answer: 2 }
+  ],
+  anagrams: [
+    { scrambled: "K - I - T - O - B", word: "KITOB" },
+    { scrambled: "Q - A - L - A - M", word: "QALAM" },
+    { scrambled: "T - E - L - E - G - R - A - M", word: "TELEGRAM" },
+    { scrambled: "F - U - T - B - O - L", word: "FUTBOL" },
+    { scrambled: "S - A - M - A - R - Q - A - N - D", word: "SAMARQAND" },
+    { scrambled: "D - A - S - T - U - R - C - H - I", word: "DASTURCHI" },
+    { scrambled: "Z - U - K - K - O", word: "ZUKKO" }
   ]
 };
