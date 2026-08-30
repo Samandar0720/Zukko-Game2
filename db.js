@@ -15,15 +15,42 @@ let inventory = {}; // { userId: { hint: N, skip: N, doublePoints: N } }
 // O'yinlarning standart (default) sozlamalari.
 // Admin /settings orqali bularni o'zgartira oladi.
 const DEFAULT_SETTINGS = {
-  minesCount: 4,          // Mina Maydonidagi minalar soni (16 katakdan) — qiyinroq
-  minesRevealPoints: 3,   // Har bir xavfsiz katak uchun ball
-  minesWinBonus: 15,      // Barcha kataklarni ochish uchun qo'shimcha bonus
-  quizQuestionCount: 5,   // Har bir viktorina sessiyasidagi savollar soni
-  quizCorrectPoints: 6,   // To'g'ri javob uchun ball
-  quizWrongPenalty: 2,    // Noto'g'ri javob uchun jarima
-  flagPoints: 6,          // Bayroqni to'g'ri topish uchun ball
-  flagWrongPenalty: 2,    // Bayroqni noto'g'ri topish uchun jarima
-  anagramPoints: 10       // Anagrammani to'g'ri topish uchun ball
+  // --- Yakka (solo) o'yinlar ---
+  minesCount: 4,               // Mina Maydonidagi minalar soni (16 katakdan)
+  minesRevealPoints: 3,        // Har bir xavfsiz katak uchun ball
+  minesWinBonus: 15,           // Barcha kataklarni ochish uchun qo'shimcha bonus
+  minesMinCashoutCells: 2,     // "Pulni saqlash" uchun kamida nechta xavfsiz katak ochilgan bo'lishi kerak
+  quizQuestionCount: 5,        // Har bir viktorina sessiyasidagi savollar soni
+  quizCorrectPoints: 6,        // To'g'ri javob uchun ball
+  quizWrongPenalty: 2,         // Noto'g'ri javob uchun jarima
+  flagPoints: 6,               // Bayroqni to'g'ri topish uchun ball
+  flagWrongPenalty: 2,         // Bayroqni noto'g'ri topish uchun jarima
+  anagramPoints: 10,           // Anagrammani to'g'ri topish uchun ball
+  wordlePoints: 20,            // Wordle so'zini topish uchun ball
+  mathPoints: 10,              // Tezkor matematika: to'g'ri javob uchun ball
+  mathWrongPenalty: 3,         // Tezkor matematika: noto'g'ri javob jarimasi
+  numberGuessMaxAttempts: 15,  // Son topish: shu urinishdan ko'p bo'lsa, ball berilmaydi
+  speedClickMaxReactionMs: 800,// Chaqqonlik: shu millisekunddan sekin bo'lsa, ball berilmaydi
+
+  // --- Guruh (party) o'yinlari ---
+  aliasGuesserPoints: 10,      // Alias: so'zni topgan uchun
+  aliasExplainerPoints: 5,     // Alias: tushuntirgan uchun
+  superlativesWinnerPoints: 10,// Eng... ovoz berish: to'g'ri topgan uchun
+  twoTruthsFoolPoints: 5,      // 2 chin 1 yolg'on: aldagan har bir kishi uchun
+  crocodileGuesserPoints: 10,  // Timsah: so'zni topgan uchun
+  crocodileActorPoints: 5,     // Timsah: tasvirlagan uchun
+
+  // --- Duel (2 kishilik) o'yinlar ---
+  ticTacToeWinnerPoints: 15,
+  rpsDuelWinnerPoints: 10,
+  diceBattleWinnerPoints: 15,
+  dartsBattleWinnerPoints: 15,
+  mathDuelWinnerPoints: 20,
+
+  // --- Do'kon narxlari ---
+  shopHintPrice: 30,
+  shopSkipPrice: 15,
+  shopDoublePointsPrice: 50
 };
 
 let settings = { ...DEFAULT_SETTINGS };
