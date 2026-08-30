@@ -350,7 +350,9 @@ function registerQuiz(bot) {
       DB.addPoints(ctx.from, correctPoints);
       await ctx.answerCbQuery(`🎉 To'g'ri! +${correctPoints} ball`);
     } else {
-      await ctx.answerCbQuery(`❌ Noto'g'ri! To'g'ri: ${q.options[q.answer]}`);
+      const penalty = DB.getSetting('quizWrongPenalty');
+      if (penalty > 0) DB.deductPoints(ctx.from, penalty);
+      await ctx.answerCbQuery(`❌ Noto'g'ri! -${penalty} ball. To'g'ri: ${q.options[q.answer]}`);
     }
   });
 
@@ -510,12 +512,26 @@ function registerStoryChain(bot) {
     const game = DB.getGame(chatId);
     if (!game || game.gameType !== 'storyChain') return ctx.reply('⚠️ Faol hikoya yo\'q.');
 
-    let fullStory = `📖 **Guruh Hikoyasi:**\n\n`;
+    if (game.sentences.length === 0) {
+      DB.clearGame(chatId);
+      return ctx.reply('⚠️ Hikoyaga hech kim gap qo\'shmadi.');
+    }
+
+    // 1) Yaxlit, uzluksiz hikoya matni
+    const combinedText = game.sentences.map(s => s.text).join(' ');
+
+    // 2) Kim nima yozganini alohida ko'rsatish
+    let contributionsText = '';
     game.sentences.forEach((s, idx) => {
-      fullStory += `${idx + 1}. ${s.text} _(${s.user.first_name})_\n`;
+      contributionsText += `${idx + 1}. _${s.text}_ — **${s.user.first_name}**\n`;
     });
+
+    const fullMessage =
+      `📖 **Guruh Hikoyasi:**\n\n${combinedText}\n\n` +
+      `✍️ **Kim nima yozdi:**\n${contributionsText}`;
+
     DB.clearGame(chatId);
-    await ctx.reply(fullStory, { parse_mode: 'Markdown' });
+    await ctx.reply(fullMessage, { parse_mode: 'Markdown' });
   });
 
   bot.on('text', async (ctx, next) => {
@@ -1034,7 +1050,7 @@ function registerFlagQuiz(bot) {
 
     const buttons = item.options.map((opt, idx) => [{
       text: opt,
-      callback_data: `flag_ans_${chatId}_${idx === item.answer}`
+      callback_data: `flag_ans_${chatId}_${idx === item.answer}_${encodeURIComponent(item.country)}`
     }]);
 
     await ctx.reply(`🏎️ **Bayroqni Top**\n\nUshbu bayroq qaysi davlatniki?\n\n#️⃣ ${item.flag}`, {
@@ -1043,18 +1059,38 @@ function registerFlagQuiz(bot) {
     });
   });
 
-  bot.action(/^flag_ans_(-?\d+)_(true|false)$/, async (ctx) => {
+  bot.action(/^flag_ans_(-?\d+)_(true|false)_(.+)$/, async (ctx) => {
     const isCorrect = ctx.match[2] === 'true';
+    const correctCountry = decodeURIComponent(ctx.match[3]);
     if (isCorrect) {
       const flagPoints = DB.getSetting('flagPoints');
       DB.addPoints(ctx.from, flagPoints);
       await ctx.answerCbQuery(`🎉 To'g'ri javob! +${flagPoints} ball`);
       await ctx.editMessageText(`🎉 **TO'G'RI! Qoyil-maqom bilimdon!** (+${flagPoints} ball)`, { parse_mode: 'Markdown' });
     } else {
-      await ctx.answerCbQuery('❌ Noto\'g\'ri javob!');
-      await ctx.editMessageText(`❌ **NOTO'G'RI JAVOB!** Qayta o'ynash uchun /flag yuboring.`, { parse_mode: 'Markdown' });
+      const penalty = DB.getSetting('flagWrongPenalty');
+      if (penalty > 0) DB.deductPoints(ctx.from, penalty);
+      await ctx.answerCbQuery(`❌ Noto'g'ri! -${penalty} ball`);
+      await ctx.editMessageText(`❌ **NOTO'G'RI JAVOB!** To'g'ri javob: **${correctCountry}**. Qayta o'ynash uchun /flag yuboring.`, { parse_mode: 'Markdown' });
     }
   });
+}
+
+// Berilgan so'z harflarini haqiqiy tasodifiy tartibda aralashtiradi.
+// Natija asl so'zning o'zi bilan bir xil chiqib qolmasligi uchun qayta uriniladi.
+function scrambleWord(word) {
+  const letters = word.split('');
+  let scrambled = word;
+  let attempts = 0;
+  while (scrambled === word && attempts < 20) {
+    for (let i = letters.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [letters[i], letters[j]] = [letters[j], letters[i]];
+    }
+    scrambled = letters.join('');
+    attempts++;
+  }
+  return scrambled;
 }
 
 // 16. Anagram (Solo)
@@ -1063,9 +1099,10 @@ function registerAnagram(bot) {
     const chatId = ctx.chat.id;
     const anagrams = questionsData.anagrams || [];
     const item = anagrams[Math.floor(Math.random() * anagrams.length)];
+    const scrambled = scrambleWord(item.word).split('').join(' - ');
 
     DB.setGame(chatId, { gameType: 'anagram', chatId, targetWord: item.word, isFinished: false });
-    await ctx.reply(`🧩 **Harf Shahmat (Anagramma)**\n\nQuyidagi harflardan to'g'ri so'z tuzing:\n\n👉 \`${item.scrambled}\`\n\n✍️ Javobingizni chatga yozing!`, { parse_mode: 'Markdown' });
+    await ctx.reply(`🧩 **Harf Shahmat (Anagramma)**\n\nQuyidagi harflardan to'g'ri so'z tuzing:\n\n👉 \`${scrambled}\`\n\n✍️ Javobingizni chatga yozing!`, { parse_mode: 'Markdown' });
   });
 
   bot.on('text', async (ctx, next) => {
