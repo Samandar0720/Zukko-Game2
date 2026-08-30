@@ -996,6 +996,7 @@ function registerMath(bot) {
     const num2 = Math.floor(Math.random() * 30) + 5;
     const op = Math.random() > 0.5 ? '+' : '*';
     const answer = op === '+' ? num1 + num2 : num1 * num2;
+    const opDisplay = op === '+' ? '+' : '×'; // Markdown'da "*" belgisi qalin matn bilan chalkashib, xato beradi
 
     const fake1 = answer + Math.floor(Math.random() * 5) + 1;
     const fake2 = answer - Math.floor(Math.random() * 5) - 1;
@@ -1005,7 +1006,7 @@ function registerMath(bot) {
     const buttons = options.map(opt => [{ text: `${opt}`, callback_data: `math_ans_${chatId}_${opt === answer}` }]);
 
     DB.setGame(chatId, { gameType: 'math', chatId, answer, isFinished: false });
-    await ctx.reply(`🧠 **Tezkor Matematika**\n\n❓ **${num1} ${op} ${num2} = ?**`, {
+    await ctx.reply(`🧠 **Tezkor Matematika**\n\n❓ **${num1} ${opDisplay} ${num2} = ?**`, {
       parse_mode: 'Markdown',
       reply_markup: { inline_keyboard: buttons }
     });
@@ -1241,7 +1242,7 @@ function registerMathDuel(bot) {
     const buttons = opts.map(o => [{ text: `${o}`, callback_data: `mduel_ans_${chatId}_${o === ans}` }]);
 
     await ctx.answerCbQuery('Misol berildi!');
-    await ctx.editMessageText(`🧠 **KIM BIRINCHI TOPADI?**\n\n❓ **${a} * ${b} = ?**\n\n👤 **${game.player1.first_name}** vs 👤 **${game.player2.first_name}**`, {
+    await ctx.editMessageText(`🧠 **KIM BIRINCHI TOPADI?**\n\n❓ **${a} × ${b} = ?**\n\n👤 **${game.player1.first_name}** vs 👤 **${game.player2.first_name}**`, {
       parse_mode: 'Markdown',
       reply_markup: { inline_keyboard: buttons }
     });
