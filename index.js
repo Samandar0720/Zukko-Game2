@@ -4,6 +4,7 @@ import { config } from './config.js';
 import { DB } from './db.js';
 import { registerAllGames } from './games.js';
 import { registerAdminPanel } from './admin.js';
+import { registerShop } from './shop.js';
 
 if (!config.botToken) {
   console.error('❌ BOT_TOKEN belgilanmagan! Bot ishga tushmaydi.');
@@ -79,7 +80,11 @@ bot.help((ctx) => {
     `• /story — Hikoya zanjiri\n` +
     `• /bomb — Portlovchi Bomba (Hot Potato)\n\n` +
     `🏆 **/top** — Reyting va to'plangan ballar.\n\n` +
-    `⚙️ **/settings** — Bot sozlamalari (faqat admin uchun).`;
+    `⚙️ **/settings** — Bot sozlamalari (faqat admin uchun).\n\n` +
+    `🛒 **/shop** — Do'kon (ball evaziga yordamchi buyumlar).\n` +
+    `🎒 **/inventory** — Sumkangizdagi buyumlar.\n` +
+    `💡 **/hint** — Faol o'yin bo'yicha maslahat (buyum kerak).\n` +
+    `⏭ **/skip** — Faol o'yinni jarimasiz tashlab yuborish (buyum kerak).`;
 
   return ctx.reply(helpText, { parse_mode: 'Markdown' });
 });
@@ -191,6 +196,7 @@ bot.use((ctx, next) => {
 // Register all 21 games
 registerAllGames(bot);
 registerAdminPanel(bot);
+registerShop(bot);
 
 // Launch mode setup
 const PORT = config.port;
