@@ -30,10 +30,20 @@ const SETTINGS_META = {
     emoji: '✅',
     options: [5, 10, 15, 20]
   },
+  quizWrongPenalty: {
+    label: "Noto'g'ri javob jarimasi (viktorina)",
+    emoji: '❌',
+    options: [0, 2, 3, 5]
+  },
   flagPoints: {
     label: 'Bayroq o\'yini bali',
     emoji: '🏳️',
     options: [5, 10, 15, 20]
+  },
+  flagWrongPenalty: {
+    label: "Noto'g'ri javob jarimasi (bayroq)",
+    emoji: '❌',
+    options: [0, 2, 3, 5]
   },
   anagramPoints: {
     label: 'Anagramma bali',
@@ -129,5 +139,45 @@ export function registerAdminPanel(bot) {
       '⚙️ **Bot sozlamalari**\n\nO\'zgartirmoqchi bo\'lgan sozlamani tanlang:',
       { parse_mode: 'Markdown', reply_markup: buildMainMenu() }
     );
+  });
+
+  // Admin foydalanuvchiga ball berish/ayirish huquqi.
+  // Foydalanish: xabarga javob berib "/ball 50" YOKI "/ball <telegram_id> 50"
+  // Manfiy son yuborsa (masalan -20), balldan ayiradi.
+  bot.command(['ball', 'givepoints'], async (ctx) => {
+    if (!isAdmin(ctx)) {
+      return ctx.reply('⛔ Bu buyruq faqat bot administratori uchun.');
+    }
+
+    const args = ctx.message.text.split(/\s+/).slice(1);
+    let targetUser = null;
+    let amount = null;
+
+    if (ctx.message.reply_to_message && args.length >= 1) {
+      targetUser = ctx.message.reply_to_message.from;
+      amount = parseInt(args[0], 10);
+    } else if (args.length >= 2) {
+      const targetId = parseInt(args[0], 10);
+      amount = parseInt(args[1], 10);
+      // Reply qilinmagan holatda faqat ID orqali ball qo'shamiz;
+      // ism-familiyasi keyinchalik ushbu foydalanuvchi botga biror amal
+      // qilganda avtomatik yangilanadi.
+      targetUser = { id: targetId, first_name: `User ${targetId}` };
+    }
+
+    if (!targetUser || isNaN(amount)) {
+      return ctx.reply(
+        "⚠️ Foydalanish:\n" +
+        "• Xabarga javob berib: `/ball 50`\n" +
+        "• ID orqali: `/ball 123456789 50`\n\n" +
+        "Ballni ayirish uchun manfiy son yuboring: `/ball 50 -20`",
+        { parse_mode: 'Markdown' }
+      );
+    }
+
+    const result = DB.addPoints(targetUser, amount);
+    const name = targetUser.first_name || targetUser.id;
+    const sign = amount >= 0 ? '+' : '';
+    await ctx.reply(`✅ **${name}** ga ${sign}${amount} ball berildi.\n💰 Yangi balans: ${result ? result.total : DB.getUserScore(targetUser.id)}`, { parse_mode: 'Markdown' });
   });
 }
