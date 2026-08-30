@@ -214,13 +214,13 @@ function registerTwoTruthsOneLie(bot) {
       const v = game.votes[vId];
       if (v.choice === game.lieIndex) {
         correctCount++;
-        DB.addPoints(v.user, 10);
+        DB.addPoints(v.user, DB.getSetting('superlativesWinnerPoints'));
         winners.push(v.user.first_name);
       }
     }
 
     const fooledCount = totalVotes - correctCount;
-    if (fooledCount > 0 && game.author) DB.addPoints(game.author, fooledCount * 5);
+    if (fooledCount > 0 && game.author) DB.addPoints(game.author, fooledCount * DB.getSetting('twoTruthsFoolPoints'));
 
     let summary = `🤥 **Natijalar:**\n👤 Muallif: **${game.author ? game.author.first_name : 'Noma\'lum'}**\n❌ **Yolg'on:** ${game.facts[game.lieIndex].text}\n\nTopganlar: ${winners.join(', ') || 'Hech kim'}`;
     DB.clearGame(chatId);
@@ -287,10 +287,11 @@ function registerAliasGuess(bot) {
 
       if (text === target || text.includes(target)) {
         clearTimeout(game.timer);
-        DB.addPoints(ctx.from, 10);
-        if (game.explainer) DB.addPoints(game.explainer, 5);
+        const guesserPoints = DB.getSetting('aliasGuesserPoints');
+        DB.addPoints(ctx.from, guesserPoints);
+        if (game.explainer) DB.addPoints(game.explainer, DB.getSetting('aliasExplainerPoints'));
         DB.clearGame(chatId);
-        await ctx.reply(`🎉 **TO'G'RI!** Yashirin so'z: **${game.word}**\nTopdi: **${ctx.from.first_name}** (+10 ball)`, { parse_mode: 'Markdown' });
+        await ctx.reply(`🎉 **TO'G'RI!** Yashirin so'z: **${game.word}**\nTopdi: **${ctx.from.first_name}** (+${guesserPoints} ball)`, { parse_mode: 'Markdown' });
       }
     }
     return next();
@@ -594,9 +595,10 @@ function registerWordle(bot) {
 
     if (text === game.targetWord) {
       game.isFinished = true;
-      DB.addPoints(ctx.from, 20);
+      const wordlePoints = DB.getSetting('wordlePoints');
+      DB.addPoints(ctx.from, wordlePoints);
       DB.clearGame(chatId);
-      return ctx.reply(`🎉 **TO'G'RI JAVOB: ${game.targetWord}!** (+20 ball)`, { parse_mode: 'Markdown' });
+      return ctx.reply(`🎉 **TO'G'RI JAVOB: ${game.targetWord}!** (+${wordlePoints} ball)`, { parse_mode: 'Markdown' });
     }
 
     if (game.attempts.length >= game.maxAttempts) {
@@ -672,6 +674,14 @@ function registerMinesweeper(bot) {
     const game = DB.getGame(chatId);
     if (!game || game.gameType !== 'minesweeper' || game.isFinished) return ctx.answerCbQuery('⚠️ Tugagan.');
     game.isFinished = true;
+
+    const minCells = DB.getSetting('minesMinCashoutCells');
+    if (game.safeRevealed < minCells) {
+      DB.clearGame(chatId);
+      await ctx.answerCbQuery(`⚠️ Kamida ${minCells} ta katak ochilishi kerak edi. Ball berilmadi.`, { show_alert: true });
+      return ctx.editMessageText(`⚠️ **BALL BERILMADI!** Kamida ${minCells} ta xavfsiz katak ochish kerak edi (siz ${game.safeRevealed} ta ochdingiz).`, { parse_mode: 'Markdown' });
+    }
+
     DB.addPoints(game.player, game.score);
     DB.clearGame(chatId);
     await ctx.answerCbQuery(`💰 +${game.score} ball!`);
@@ -714,9 +724,13 @@ function registerNumberGuess(bot) {
 
     if (guess === game.secret) {
       game.isFinished = true;
+      const maxAttempts = DB.getSetting('numberGuessMaxAttempts');
+      DB.clearGame(chatId);
+      if (game.attempts > maxAttempts) {
+        return ctx.reply(`🎉 **TO'G'RI! Son: ${game.secret}**\n📊 Urinishlar: ${game.attempts}\n⚠️ Urinishlar soni ${maxAttempts} dan oshgani uchun ball berilmadi.`, { parse_mode: 'Markdown' });
+      }
       const pts = Math.max(5, 25 - game.attempts * 2);
       DB.addPoints(ctx.from, pts);
-      DB.clearGame(chatId);
       return ctx.reply(`🎉 **TO'G'RI! Son: ${game.secret}**\n📊 Urinishlar: ${game.attempts}\n🏆 +${pts} ball!`, { parse_mode: 'Markdown' });
     }
 
@@ -772,10 +786,11 @@ function registerTicTacToe(bot) {
     if (win) {
       game.isFinished = true;
       const winnerUser = win === 'X' ? game.playerX : game.playerO;
-      DB.addPoints(winnerUser, 15);
+      const pts = DB.getSetting('ticTacToeWinnerPoints');
+      DB.addPoints(winnerUser, pts);
       DB.clearGame(chatId);
       await ctx.answerCbQuery();
-      return ctx.editMessageText(`🎉 **G'OLIB: ${winnerUser.first_name}!** (+15 ball)`, { parse_mode: 'Markdown', reply_markup: buildXOBoard(chatId, game.board, true) });
+      return ctx.editMessageText(`🎉 **G'OLIB: ${winnerUser.first_name}!** (+${pts} ball)`, { parse_mode: 'Markdown', reply_markup: buildXOBoard(chatId, game.board, true) });
     }
 
     if (game.board.every(row => row.every(cell => cell !== ''))) {
@@ -864,11 +879,13 @@ function registerRpsDuel(bot) {
 
       if (c1 === c2) msg += `🤝 **DURANG!**`;
       else if ((c1 === 'rock' && c2 === 'scissors') || (c1 === 'scissors' && c2 === 'paper') || (c1 === 'paper' && c2 === 'rock')) {
-        DB.addPoints(game.player1, 10);
-        msg += `🎉 **G'OLIB: ${game.player1.first_name}!** (+10 ball)`;
+        const pts = DB.getSetting('rpsDuelWinnerPoints');
+        DB.addPoints(game.player1, pts);
+        msg += `🎉 **G'OLIB: ${game.player1.first_name}!** (+${pts} ball)`;
       } else {
-        DB.addPoints(game.player2, 10);
-        msg += `🎉 **G'OLIB: ${game.player2.first_name}!** (+10 ball)`;
+        const pts = DB.getSetting('rpsDuelWinnerPoints');
+        DB.addPoints(game.player2, pts);
+        msg += `🎉 **G'OLIB: ${game.player2.first_name}!** (+${pts} ball)`;
       }
       DB.clearGame(chatId);
       await ctx.editMessageText(msg, { parse_mode: 'Markdown' });
@@ -994,10 +1011,11 @@ function registerCrocodile(bot) {
       if (game.actor && game.actor.id === ctx.from.id) return next();
 
       if (userText === targetWord || (targetWord.includes(userText) && userText.length > 3)) {
-        DB.addPoints(ctx.from, 10);
-        if (game.actor) DB.addPoints(game.actor, 5);
+        const guesserPoints = DB.getSetting('crocodileGuesserPoints');
+        DB.addPoints(ctx.from, guesserPoints);
+        if (game.actor) DB.addPoints(game.actor, DB.getSetting('crocodileActorPoints'));
         DB.clearGame(chatId);
-        await ctx.reply(`🎉 **TO'G'RI! Ibora: ${game.word}**\nTopdi: **${ctx.from.first_name}** (+10 ball)`, { parse_mode: 'Markdown' });
+        await ctx.reply(`🎉 **TO'G'RI! Ibora: ${game.word}**\nTopdi: **${ctx.from.first_name}** (+${guesserPoints} ball)`, { parse_mode: 'Markdown' });
       }
     }
     return next();
@@ -1031,11 +1049,14 @@ function registerMath(bot) {
   bot.action(/^math_ans_(-?\d+)_(true|false)$/, async (ctx) => {
     const isCorrect = ctx.match[2] === 'true';
     if (isCorrect) {
-      DB.addPoints(ctx.from, 10);
-      await ctx.answerCbQuery('🎉 To\'g\'ri javob! +10 ball');
-      await ctx.editMessageText(`🎉 **BARAKALLA! TO'G'RI JAVOB!** (+10 ball)`, { parse_mode: 'Markdown' });
+      const pts = DB.getSetting('mathPoints');
+      DB.addPoints(ctx.from, pts);
+      await ctx.answerCbQuery(`🎉 To'g'ri javob! +${pts} ball`);
+      await ctx.editMessageText(`🎉 **BARAKALLA! TO'G'RI JAVOB!** (+${pts} ball)`, { parse_mode: 'Markdown' });
     } else {
-      await ctx.answerCbQuery('❌ Noto\'g\'ri javob!');
+      const penalty = DB.getSetting('mathWrongPenalty');
+      if (penalty > 0) DB.deductPoints(ctx.from, penalty);
+      await ctx.answerCbQuery(`❌ Noto'g'ri javob! -${penalty} ball`);
       await ctx.editMessageText(`❌ **NOTO'G'RI JAVOB!** Yana bir bor urinib ko'ring: /math`, { parse_mode: 'Markdown' });
     }
   });
@@ -1143,6 +1164,13 @@ function registerSpeedClick(bot) {
   bot.action(/^click_press_(-?\d+)_(\d+)$/, async (ctx) => {
     const startTime = parseInt(ctx.match[2], 10);
     const reactionTime = Date.now() - startTime;
+    const maxMs = DB.getSetting('speedClickMaxReactionMs');
+
+    if (reactionTime > maxMs) {
+      await ctx.answerCbQuery(`🐢 Juda sekin! (${reactionTime}ms). Ball berilmadi.`);
+      return ctx.editMessageText(`🐢 **JUDA SEKIN!**\n\n⏱ Tezlik: **${reactionTime} ms** (max: ${maxMs}ms)\n❌ Ball berilmadi.`, { parse_mode: 'Markdown' });
+    }
+
     let points = reactionTime < 300 ? 20 : reactionTime < 500 ? 15 : 10;
 
     DB.addPoints(ctx.from, points);
@@ -1185,11 +1213,13 @@ function registerDiceBattle(bot) {
       let res = `🎲 **Natijalar:**\n👤 ${game.player1.first_name}: **${v1}**\n👤 ${game.player2.first_name}: **${v2}**\n\n`;
 
       if (v1 > v2) {
-        DB.addPoints(game.player1, 15);
-        res += `🎉 **G'OLIB: ${game.player1.first_name}!** (+15 ball)`;
+        const pts = DB.getSetting('diceBattleWinnerPoints');
+        DB.addPoints(game.player1, pts);
+        res += `🎉 **G'OLIB: ${game.player1.first_name}!** (+${pts} ball)`;
       } else if (v2 > v1) {
-        DB.addPoints(game.player2, 15);
-        res += `🎉 **G'OLIB: ${game.player2.first_name}!** (+15 ball)`;
+        const pts = DB.getSetting('diceBattleWinnerPoints');
+        DB.addPoints(game.player2, pts);
+        res += `🎉 **G'OLIB: ${game.player2.first_name}!** (+${pts} ball)`;
       } else {
         res += `🤝 **DURANG!** Ikkala zarda ham bir xil achko!`;
       }
@@ -1233,11 +1263,13 @@ function registerDartsBattle(bot) {
       let res = `🎯 **Natijalar:**\n👤 ${game.player1.first_name}: **${v1} ball**\n👤 ${game.player2.first_name}: **${v2} ball**\n\n`;
 
       if (v1 > v2) {
-        DB.addPoints(game.player1, 15);
-        res += `🎉 **G'OLIB: ${game.player1.first_name}!** (+15 ball)`;
+        const pts = DB.getSetting('dartsBattleWinnerPoints');
+        DB.addPoints(game.player1, pts);
+        res += `🎉 **G'OLIB: ${game.player1.first_name}!** (+${pts} ball)`;
       } else if (v2 > v1) {
-        DB.addPoints(game.player2, 15);
-        res += `🎉 **G'OLIB: ${game.player2.first_name}!** (+15 ball)`;
+        const pts = DB.getSetting('dartsBattleWinnerPoints');
+        DB.addPoints(game.player2, pts);
+        res += `🎉 **G'OLIB: ${game.player2.first_name}!** (+${pts} ball)`;
       } else {
         res += `🤝 **DURANG!** Aniq zarba!`;
       }
@@ -1294,10 +1326,11 @@ function registerMathDuel(bot) {
     if (ctx.from.id !== game.player1.id && ctx.from.id !== game.player2.id) return ctx.answerCbQuery('⚠️ Siz duel qatnashchisi emassiz!', { show_alert: true });
 
     if (isCorrect) {
-      DB.addPoints(ctx.from, 20);
+      const pts = DB.getSetting('mathDuelWinnerPoints');
+      DB.addPoints(ctx.from, pts);
       DB.clearGame(chatId);
       await ctx.answerCbQuery('🎉 Birinchi topdingiz!');
-      await ctx.editMessageText(`🎉 **DUEL G'OLIBI: ${ctx.from.first_name}!** Misolni birinchi topdi (+20 ball)`, { parse_mode: 'Markdown' });
+      await ctx.editMessageText(`🎉 **DUEL G'OLIBI: ${ctx.from.first_name}!** Misolni birinchi topdi (+${pts} ball)`, { parse_mode: 'Markdown' });
     } else {
       await ctx.answerCbQuery('❌ Noto\'g\'ri javob!', { show_alert: true });
     }
