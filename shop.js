@@ -1,30 +1,32 @@
 import { DB } from './db.js';
 import { questionsData } from './data.js';
 
-const SHOP_ITEMS = {
-  hint: {
-    label: 'Yordam (Hint)',
-    emoji: '💡',
-    price: 30,
-    desc: "Faol o'yin bo'yicha maslahat beradi (/hint bilan ishlatiladi)."
-  },
-  skip: {
-    label: "O'tkazib yuborish (Skip)",
-    emoji: '⏭',
-    price: 15,
-    desc: "Qiyin savolni jarimasiz tashlab, o'yinni qayta boshlash imkonini beradi (/skip bilan ishlatiladi)."
-  },
-  doublePoints: {
-    label: '2x Ball kartasi',
-    emoji: '⚡',
-    price: 50,
-    desc: "Keyingi g'alabangizda olingan ballni ikki baravar qiladi (avtomatik ishlaydi)."
-  }
-};
+function getShopItems() {
+  return {
+    hint: {
+      label: 'Yordam (Hint)',
+      emoji: '💡',
+      price: DB.getSetting('shopHintPrice'),
+      desc: "Faol o'yin bo'yicha maslahat beradi (/hint bilan ishlatiladi)."
+    },
+    skip: {
+      label: "O'tkazib yuborish (Skip)",
+      emoji: '⏭',
+      price: DB.getSetting('shopSkipPrice'),
+      desc: "Qiyin savolni jarimasiz tashlab, o'yinni qayta boshlash imkonini beradi (/skip bilan ishlatiladi)."
+    },
+    doublePoints: {
+      label: '2x Ball kartasi',
+      emoji: '⚡',
+      price: DB.getSetting('shopDoublePointsPrice'),
+      desc: "Keyingi g'alabangizda olingan ballni ikki baravar qiladi (avtomatik ishlaydi)."
+    }
+  };
+}
 
 function buildShopMenu(userId) {
   const balance = DB.getUserScore(userId);
-  const rows = Object.entries(SHOP_ITEMS).map(([key, item]) => ([{
+  const rows = Object.entries(getShopItems()).map(([key, item]) => ([{
     text: `${item.emoji} ${item.label} — ${item.price} ball`,
     callback_data: `shop_buy_${key}`
   }]));
@@ -34,7 +36,7 @@ function buildShopMenu(userId) {
 function buildShopText(userId) {
   const balance = DB.getUserScore(userId);
   let text = `🛒 **Do'kon**\n\n💰 Balansingiz: **${balance} ball**\n\n`;
-  Object.values(SHOP_ITEMS).forEach(item => {
+  Object.values(getShopItems()).forEach(item => {
     text += `${item.emoji} **${item.label}** — ${item.price} ball\n_${item.desc}_\n\n`;
   });
   text += "Sotib olish uchun quyidagi tugmalardan birini bosing:";
@@ -60,7 +62,7 @@ export function registerShop(bot) {
 
   bot.action(/^shop_buy_(.+)$/, async (ctx) => {
     const key = ctx.match[1];
-    const item = SHOP_ITEMS[key];
+    const item = getShopItems()[key];
     if (!item) return ctx.answerCbQuery('⚠️ Mahsulot topilmadi.');
 
     const balance = DB.getUserScore(ctx.from.id);
