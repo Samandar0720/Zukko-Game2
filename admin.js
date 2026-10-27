@@ -1,7 +1,5 @@
 import { DB } from './db.js';
-
-// Faqat shu Telegram ID admin sifatida sozlamalarni o'zgartira oladi.
-const ADMIN_ID = 1621559223;
+import { config } from './config.js';
 
 // Sozlamalar kategoriyalarga bo'lingan — har biri alohida menyu bo'lib ochiladi.
 const CATEGORIES = {
@@ -57,7 +55,7 @@ const CATEGORIES = {
 };
 
 function isAdmin(ctx) {
-  return ctx.from && ctx.from.id === ADMIN_ID;
+  return ctx.from && ctx.from.id === config.adminId;
 }
 
 function findSettingMeta(key) {

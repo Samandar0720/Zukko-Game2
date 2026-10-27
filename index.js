@@ -1,5 +1,5 @@
 import express from 'express';
-import { Telegraf } from 'telegraf';
+import { Telegraf, session } from 'telegraf';
 import { config } from './config.js';
 import { DB } from './db.js';
 import { registerAllGames } from './games.js';
@@ -12,6 +12,7 @@ if (!config.botToken) {
 }
 
 const bot = new Telegraf(config.botToken);
+bot.use(session());
 const app = express();
 
 app.use(express.json());
